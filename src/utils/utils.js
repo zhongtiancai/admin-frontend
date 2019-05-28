@@ -181,3 +181,12 @@ export function formatWan(val) {
 export function isAntdPro() {
   return window.location.hostname === 'preview.pro.ant.design';
 }
+
+export function getPageData(response){
+  const data = {};
+  data.list = response.list;
+  data.total = response.total;
+  data.pageSize = response.pageSize
+  data.current = response.pageNum;
+  return data;
+}

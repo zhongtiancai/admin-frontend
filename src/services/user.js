@@ -1,9 +1,9 @@
 import request from '@/utils/request';
-
-export async function query() {
-  return request('/api/users');
+import { stringify } from 'qs';
+export async function query(params) {
+  return request(`/server/api/admin/findPage?${stringify(params)}`);
 }
 
 export async function queryCurrent() {
-  return request('/api/currentUser');
+  return request('/server/api/currentUser');
 }
