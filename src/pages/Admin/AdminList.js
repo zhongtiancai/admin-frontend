@@ -21,6 +21,7 @@ import {
   Divider,
   Steps,
   Radio,
+  Checkbox,
 } from 'antd';
 import StandardTable from '@/components/StandardTable';
 import PageHeaderWrapper from '@/components/PageHeaderWrapper';
@@ -36,23 +37,86 @@ const getValue = obj =>
   Object.keys(obj)
     .map(key => obj[key])
     .join(',');
-const statusMap = ['success', 'error'];
-const status = ['启用', '禁用'];
+const statusMap = ['error','success', ];
+const status = ['禁用','启用'];
+
+
+
+const CreateForm = Form.create()(props => {
+  const { modalVisible, form, handleAdd, handleModalVisible,editColumn,roles} = props;
+  const okHandle = function(){
+      handleAdd(form);
+  };
+  return (
+    <Modal
+      destroyOnClose
+      title="添加用户"
+      visible={modalVisible}
+      width={700}
+      onOk={okHandle}
+      onCancel={() => handleModalVisible()}
+    >
+      <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="用户名">
+        {form.getFieldDecorator('username', {
+          initialValue: editColumn.username,
+          rules: [{ required: true, message: '请输入用户名！'}],
+        })(<Input placeholder="请输入用户名" disabled = {editColumn.id}/>)}
+      </FormItem>
+
+      <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="姓名">
+        {form.getFieldDecorator('nickName', {
+          initialValue: editColumn.nickName,
+          rules: [{ required: true, message: '请输入姓名！'}],
+        })(<Input placeholder="请输入姓名" />)}
+      </FormItem>
+
+      <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="邮件">
+        {form.getFieldDecorator('email', {
+          initialValue: editColumn.email,
+          rules: [{ required: true, message: '请输入邮件！'}],
+        })(<Input placeholder="请输入邮件" />)}
+      </FormItem>
+
+      { editColumn.id?"":
+        <FormItem labelCol={{span: 5}} wrapperCol={{span: 15}} label="密码">
+          {form.getFieldDecorator('password', {
+            initialValue: editColumn.password,
+            rules: [{required: true, message: '请输入密码！'}],
+          })(<Input.Password placeholder="请输入密码"/>)}
+        </FormItem>
+      }
+      <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="选择角色">
+        {form.getFieldDecorator('roles', {
+          initialValue: editColumn.roles,
+          rules: [{ required: true, message: '请选择角色！'}],
+        })(<Checkbox.Group style={{ width: '100%' }}>
+            {roles.map(role=>{
+             return  <Col span={8}>
+                <Checkbox value={role.id}>{role.name}</Checkbox>
+              </Col>
+            })}
+        </Checkbox.Group>)}
+      </FormItem>
+    </Modal>
+  );
+});
+
 
 /* eslint react/no-multi-comp:0 */
-@connect(({ admin, loading }) => ({
+@connect(({ admin,role, loading }) => ({
   admin,
+  role,
   loading: loading.models.admin,
 }))
 @Form.create()
 class AdminList extends PureComponent {
   state = {
     modalVisible: false,
-    updateModalVisible: false,
     expandForm: false,
     selectedRows: [],
-    formValues: {},
-    stepFormValues: {},
+    editColumn: {},
+    roles:[],
+    formValues:{}
   };
 
   columns = [
@@ -82,7 +146,7 @@ class AdminList extends PureComponent {
       title: '操作',
       render: (text, record) => (
         <Fragment>
-          <a onClick={() => this.handleUpdateModalVisible(true, record)}>配置</a>
+          <a onClick={() => this.handleUpdateModalVisible(record)}>编辑</a>
           <Divider type="vertical" />
         </Fragment>
       ),
@@ -91,9 +155,22 @@ class AdminList extends PureComponent {
 
   componentDidMount() {
     const { dispatch } = this.props;
+    this.doSearch();
+    dispatch({
+      type: 'role/all',
+    })
+  }
+
+  doSearch=()=>{
+    const { dispatch } = this.props;
     dispatch({
       type: 'admin/fetch',
     });
+  }
+
+  afterAdd=()=>{
+    this.doSearch();
+    this.handleModalVisible(false);
   }
 
   handleStandardTableChange = (pagination, filtersArg, sorter) => {
@@ -134,12 +211,7 @@ class AdminList extends PureComponent {
     });
   };
 
-  toggleForm = () => {
-    const { expandForm } = this.state;
-    this.setState({
-      expandForm: !expandForm,
-    });
-  };
+
 
   handleMenuClick = e => {
     const { dispatch } = this.props;
@@ -194,7 +266,36 @@ class AdminList extends PureComponent {
   };
 
 
+  handleModalVisible = flag => {
+    this.setState({
+      modalVisible: !!flag,
+      editColumn:{}
+    });
+  };
 
+  handleUpdateModalVisible = (record) => {
+      const roles = record.roleList.map(role=>role.id);
+      record.roles = roles;
+      this.setState({
+        modalVisible: true,
+        editColumn: record,
+    });
+  };
+
+  handleAdd=(form)=>{
+    const { dispatch } = this.props;
+    const {editColumn} = this.state;
+    form.validateFields((err, fieldsValue) => {
+      if (err) return;
+      form.resetFields();
+      const data = Object.assign(editColumn,fieldsValue);
+      dispatch({
+        type: 'admin/add',
+        payload: data,
+        callback: this.afterAdd,
+      });
+    });
+  }
 
 
 
@@ -212,6 +313,7 @@ class AdminList extends PureComponent {
               {getFieldDecorator('nickName')(<Input placeholder="请输入" />)}
             </FormItem>
           </Col>
+          {/**
           <Col md={8} sm={24}>
             <FormItem label="状态">
               {getFieldDecorator('status')(
@@ -222,7 +324,7 @@ class AdminList extends PureComponent {
               )}
             </FormItem>
           </Col>
-
+           **/}
         </Row>
         <div style={{ overflow: 'hidden' }}>
           <div style={{ marginBottom: 24 }}>
@@ -247,9 +349,11 @@ class AdminList extends PureComponent {
   render() {
     const {
       admin: { data },
+      role:{list},
       loading,
     } = this.props;
-    const { selectedRows, modalVisible, updateModalVisible, stepFormValues } = this.state;
+    const roleList = list;
+    const { selectedRows, modalVisible,editColumn,roles} = this.state;
     const menu = (
       <Menu onClick={this.handleMenuClick} selectedKeys={[]}>
         <Menu.Item key="approval">批量审批</Menu.Item>
@@ -260,42 +364,41 @@ class AdminList extends PureComponent {
       handleAdd: this.handleAdd,
       handleModalVisible: this.handleModalVisible,
     };
-    const updateMethods = {
-      handleUpdateModalVisible: this.handleUpdateModalVisible,
-      handleUpdate: this.handleUpdate,
-    };
-    return (
-      <PageHeaderWrapper title="用户列表">
-        <Card bordered={false}>
-          <div className={styles.tableList}>
-            <div className={styles.tableListForm}>{this.renderForm()}</div>
-            <div className={styles.tableListOperator}>
-              <Button icon="plus" type="primary" onClick={() => this.handleModalVisible(true)}>
-                新建
-              </Button>
-              {selectedRows.length > 0 && (
-                <span>
-                  <Button>批量操作</Button>
-                  <Dropdown overlay={menu}>
-                    <Button>
-                      更多操作 <Icon type="down" />
-                    </Button>
-                  </Dropdown>
-                </span>
-              )}
-            </div>
-            <StandardTable
-              selectedRows={selectedRows}
-              loading={loading}
-              data={data}
-              columns={this.columns}
-              onSelectRow={this.handleSelectRows}
-              onChange={this.handleStandardTableChange}
-            />
-          </div>
-        </Card>
 
-      </PageHeaderWrapper>
+    return (
+      <div>
+        <PageHeaderWrapper title="用户列表">
+          <Card bordered={false}>
+            <div className={styles.tableList}>
+              <div className={styles.tableListForm}>{this.renderForm()}</div>
+              <div className={styles.tableListOperator}>
+                <Button icon="plus" type="primary" onClick={() => this.handleModalVisible(true)}>
+                  新建
+                </Button>
+                {selectedRows.length > 0 && (
+                  <span>
+                    <Button>批量操作</Button>
+                    <Dropdown overlay={menu}>
+                      <Button>
+                        更多操作 <Icon type="down" />
+                      </Button>
+                    </Dropdown>
+                  </span>
+                )}
+              </div>
+              <StandardTable
+                selectedRows={selectedRows}
+                loading={loading}
+                data={data}
+                columns={this.columns}
+                onSelectRow={this.handleSelectRows}
+                onChange={this.handleStandardTableChange}
+              />
+            </div>
+          </Card>
+        </PageHeaderWrapper>
+        <CreateForm modalVisible={modalVisible} editColumn={editColumn} roles={roleList} {...parentMethods}/>
+      </div>
     );
   }
 }

@@ -1,30 +1,32 @@
-import { query,add} from '@/services/user';
+import { queryRole,queryRoleAll } from '@/services/serverApi';
 import { getPageData} from '@/utils/utils';
 
 export default {
-  namespace: 'admin',
+  namespace: 'role',
 
   state: {
     data: {
       list: [],
       pagination: {},
     },
+    list:[]
   },
 
   effects: {
     *fetch({ payload }, { call, put }) {
-      const response = yield call(query, payload);
+      const response = yield call(queryRole, payload);
       const data = getPageData(response);
       yield put({
         type: 'save',
         payload: data,
       });
     },
-    *add({ payload,callback }, { call}) {
-      yield call(add, payload);
-      if(callback){
-        callback();
-      }
+    *all({ payload }, { call, put }) {
+      const response = yield call(queryRoleAll, payload);
+      yield put({
+        type: 'saveList',
+        payload: response,
+      });
     },
   },
 
@@ -33,6 +35,12 @@ export default {
       return {
         ...state,
         data: action.payload,
+      };
+    },
+    saveList(state, action) {
+      return {
+        ...state,
+        list: action.payload,
       };
     },
   },

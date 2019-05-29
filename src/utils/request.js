@@ -56,6 +56,14 @@ const cachedSave = (response, hashcode) => {
   return response;
 };
 
+const setAuth = (response) => {
+     const authorization = response.headers.get("Authorization");
+     if(authorization){// 如果response中存在登录的key
+       localStorage.setItem("Authorization",authorization);
+     }
+     return response;
+}
+
 /**
  * Requests a URL, returning a promise.
  *
@@ -78,9 +86,15 @@ export default function request(url, option) {
     .update(fingerprint)
     .digest('hex');
 
+
+
   const defaultOptions = {
     credentials: 'include',
   };
+  const authorization = localStorage.getItem("Authorization");
+  if(authorization){
+    defaultOptions.headers ={"Authorization":authorization};
+  }
   const newOptions = { ...defaultOptions, ...options };
   if (
     newOptions.method === 'POST' ||
@@ -121,6 +135,7 @@ export default function request(url, option) {
   return fetch(url, newOptions)
     .then(checkStatus)
     .then(response => cachedSave(response, hashcode))
+    .then(response=>setAuth(response))
     .then(response => {
       // DELETE and 204 do not return data by default
       // using .json will report an error.

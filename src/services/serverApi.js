@@ -7,3 +7,14 @@ export async function accountLogin(params) {
     body: params,
   });
 }
+
+
+export async function queryRole(params) {
+  return request(`/server/api/role/findPage?${stringify(params)}`);
+}
+
+export async function queryRoleAll() {
+  return request(`/server/api/role/all`);
+}
+
+
