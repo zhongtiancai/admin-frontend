@@ -25,9 +25,14 @@ export default [
         name: 'admin',
         routes: [
           {
-            path: '/admin/list',
+            path: '/admin/adminlist',
             name: 'adminlist',
             component: './Admin/AdminList',
+          },
+          {
+            path: '/admin/rolelist',
+            name: 'rolelist',
+            component: './Admin/RoleList',
           }
         ],
       },
