@@ -35,6 +35,7 @@ export default {
   'menu.account.settings': '个人设置',
   'menu.account.trigger': '触发报错',
   'menu.account.logout': '退出登录',
-  'menu.admin': '用户管理',
-  'menu.admin.adminlist': '用户列表'
+  'menu.admin': '系统管理',
+  'menu.admin.adminlist': '用户管理',
+  'menu.admin.rolelist':'用户角色管理'
 };

@@ -37,4 +37,5 @@ export default {
   'menu.account.logout': 'Logout',
   'menu.admin': 'Admin',
   'menu.admin.adminlist': 'AdminList',
+  'menu.admin.rolelist':'RoleList'
 };

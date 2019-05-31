@@ -1,4 +1,4 @@
-import { queryRole,queryRoleAll } from '@/services/serverApi';
+import { queryRole,queryRoleAll,addRole } from '@/services/serverApi';
 import { getPageData} from '@/utils/utils';
 
 export default {
@@ -27,6 +27,12 @@ export default {
         type: 'saveList',
         payload: response,
       });
+    },
+    *add({ payload,callback }, { call}) {
+      yield call(addRole, payload);
+      if(callback){
+        callback();
+      }
     },
   },
 

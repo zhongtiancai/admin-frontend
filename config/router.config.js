@@ -15,7 +15,6 @@ export default [
     path: '/',
     component: '../layouts/BasicLayout',
     Routes: ['src/pages/Authorized'],
-    authority: ['admin', 'user'],
     routes: [
       // dashboard
       // list
@@ -23,20 +22,22 @@ export default [
         path: '/admin',
         icon: 'table',
         name: 'admin',
+        authority: ['admin'],
         routes: [
           {
             path: '/admin/adminlist',
             name: 'adminlist',
             component: './Admin/AdminList',
+            authority: ['adminlist'],
           },
           {
             path: '/admin/rolelist',
             name: 'rolelist',
+            authority: ['rolelist'],
             component: './Admin/RoleList',
           }
         ],
       },
-
       {
         component: '404',
       },

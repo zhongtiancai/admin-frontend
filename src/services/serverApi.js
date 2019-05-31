@@ -17,6 +17,13 @@ export async function queryRoleAll() {
   return request(`/server/api/role/all`);
 }
 
+export async function addRole(params) {
+  return request('/server/api/role/save', {
+    method: 'POST',
+    body: params,
+  });
+}
+
 export async function queryPermission(params) {
   return request(`/server/api/permission/findPage?${stringify(params)}`);
 }
@@ -24,5 +31,6 @@ export async function queryPermission(params) {
 export async function queryPermissionAll() {
   return request(`/server/api/permission/all`);
 }
+
 
 

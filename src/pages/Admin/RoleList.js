@@ -42,7 +42,7 @@ const status = ['禁用','启用'];
 
 
 const CreateForm = Form.create()(props => {
-  const { modalVisible, form, handleAdd, handleModalVisible,editColumn,permissions,onSelect,selectedKeys} = props;
+  const { modalVisible, form, handleAdd, handleModalVisible,editColumn,permissions,onCheck,checkedKeys} = props;
   const okHandle = function(){
       handleAdd(form);
   };
@@ -68,16 +68,26 @@ const CreateForm = Form.create()(props => {
       onCancel={() => handleModalVisible()}
     >
       <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="角色名称">
-        {form.getFieldDecorator('username', {
-          initialValue: editColumn.username,
+        {form.getFieldDecorator('name', {
+          initialValue: editColumn.name,
           rules: [{ required: true, message: '请输入角色名称！'}],
-        })(<Input placeholder="请输入角色名称" disabled = {editColumn.id}/>)}
+        })(<Input placeholder="请输入角色名称"/>)}
       </FormItem>
-      <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="权限">
+
+      <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="描述">
+        {form.getFieldDecorator('description', {
+          initialValue: editColumn.description,
+          rules: [{ required: true, message: '描述！'}],
+        })(<Input placeholder="请输入描述"/>)}
+      </FormItem>
+
+      <FormItem labelCol={{ span: 5 }} wrapperCol={{ span: 15 }} label="分配权限">
         <Tree
+          defaultExpandAll
           checkable
-          onSelect={onSelect}
-          selectedKeys={selectedKeys}
+          checkStrictly
+          onCheck={onCheck}
+          checkedKeys={checkedKeys}
         >
           {renderTreeNodes(permissions)}
         </Tree>
@@ -86,12 +96,34 @@ const CreateForm = Form.create()(props => {
   );
 });
 
+//构建子树，有100个对象就会构建100个树，可能性能有影响
+const  sonTree = function(nodeList){
+    for(let i = 0; i< nodeList.length; i++){
+      const node = nodeList[i];
+      for(let j =0; j<nodeList.length;j++){
+        const node2 = nodeList[j];
+        if(node.id == node2.pid){
+           if(!node.children||!node.children.length){
+             node.children = [];
+           }
+           node.children.push(node2);
+        }
+      }
+    }
+}
+
+const getTree = function (nodeList){
+  //不改变原来的列表结构
+  const nodes = nodeList.map(node=> Object.assign({},node));
+  sonTree(nodes);
+  return nodes.filter(node=>!node.pid)
+}
 
 /* eslint react/no-multi-comp:0 */
 @connect(({ permission,role, loading }) => ({
   permission,
   role,
-  loading: loading.models.permission,
+  loading: loading.models.role,
 }))
 @Form.create()
 class RoleList extends PureComponent {
@@ -100,24 +132,20 @@ class RoleList extends PureComponent {
     selectedRows: [],
     editColumn: {},
     formValues:{},
-    selectedKeys: [],
+    checkedKeys: [],
   };
+
 
   columns = [
 
 
     {
-      title: '用户名',
-      dataIndex: 'username',
+      title: '角色',
+      dataIndex: 'name',
     },
     {
-      title: '用户名字',
-      dataIndex: 'nickName',
-    }
-    ,
-    {
-      title: '邮件',
-      dataIndex: 'email',
+      title: '描述',
+      dataIndex: 'description',
     },
     {
       title: '状态',
@@ -253,16 +281,17 @@ class RoleList extends PureComponent {
   handleModalVisible = flag => {
     this.setState({
       modalVisible: !!flag,
-      editColumn:{}
+      editColumn:{},
+      checkedKeys:[]
     });
   };
 
   handleUpdateModalVisible = (record) => {
-      //const roles = record.roleList.map(role=>role.id);
-      //record.roles = roles;
+      const permissionIds = record.permissionList.map(permission=>permission.id);
       this.setState({
         modalVisible: true,
         editColumn: record,
+        checkedKeys: permissionIds
     });
   };
 
@@ -273,17 +302,20 @@ class RoleList extends PureComponent {
       if (err) return;
       form.resetFields();
       const data = Object.assign(editColumn,fieldsValue);
+      const {checkedKeys} = this.state;
+      data.permissions = checkedKeys;
       dispatch({
-        type: 'admin/add',
+        type: 'role/add',
         payload: data,
         callback: this.afterAdd,
       });
     });
   }
 
-  onSelect = (selectedKeys, info) => {
-    console.log('onSelect', info);
-    this.setState({ selectedKeys });
+  onCheck = (checkedInfo, info) => {
+    console.log(checkedInfo);
+    console.log(checkedInfo.checked);
+    this.setState({checkedKeys: checkedInfo.checked});
   }
 
 
@@ -296,8 +328,8 @@ class RoleList extends PureComponent {
       <Form onSubmit={this.handleSearch} layout="inline">
         <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
           <Col md={8} sm={24}>
-            <FormItem label="用户姓名">
-              {getFieldDecorator('nickName')(<Input placeholder="请输入" />)}
+            <FormItem label="角色名">
+              {getFieldDecorator('name')(<Input placeholder="请输入" />)}
             </FormItem>
           </Col>
         </Row>
@@ -328,17 +360,11 @@ class RoleList extends PureComponent {
       loading,
     } = this.props;
     // 开始遍历
-    const parents = list.filter(item=>!item.pid);
-
-    parents.forEach(p=>{
-      const children = list.filter(item=>item.pid === p.id);
-      if(children.length){
-        p.children = children;
-      }
-    });
-    const permissionList = parents;
+    const permissionList = getTree(list);
     console.log(permissionList);
-    const { selectedRows, modalVisible,editColumn,selectedKeys} = this.state;
+    //由于暂时不考虑多层结构，所有不写树结构方法
+
+    const { selectedRows, modalVisible,editColumn,checkedKeys} = this.state;
     const menu = (
       <Menu onClick={this.handleMenuClick} selectedKeys={[]}>
         <Menu.Item key="approval">批量审批</Menu.Item>
@@ -348,7 +374,7 @@ class RoleList extends PureComponent {
     const parentMethods = {
       handleAdd: this.handleAdd,
       handleModalVisible: this.handleModalVisible,
-      onSelect:this.onSelect
+      onCheck:this.onCheck
     };
 
     return (
@@ -387,7 +413,7 @@ class RoleList extends PureComponent {
           modalVisible={modalVisible}
           editColumn={editColumn}
           permissions={permissionList}
-          selectedKeys={selectedKeys}
+          checkedKeys={checkedKeys}
           {...parentMethods}
         />
       </div>

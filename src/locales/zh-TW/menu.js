@@ -35,6 +35,7 @@ export default {
   'menu.exception.not-find': '404',
   'menu.exception.server-error': '500',
   'menu.exception.trigger': '触发错误',
-  'menu.admin': '用戶管理',
-  'menu.admin.adminlist': '用戶列表'
+  'menu.admin': '系統管理',
+  'menu.admin.adminlist': '用戶管理',
+  'menu.admin.rolelist':'用戶角色管理'
 };
